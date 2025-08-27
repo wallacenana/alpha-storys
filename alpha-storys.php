@@ -2,7 +2,7 @@
 /**
  * Plugin Name:  Alpha Stories
  * Description:  Cria Web Stories de forma facilitada com o editorpadr達o do Wordpress
- * Version:      1.0.0
+ * Version:      1.0.1
  * Author: Wallace Tavares
  * Author URI: https://wallacetavares.com
  * License: GPLv2 or later
