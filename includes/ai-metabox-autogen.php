@@ -14,18 +14,9 @@ add_action('add_meta_boxes', function(){
 });
 
 function alpha_ai_autogen_cb($post) {
-  $auto = (bool) get_post_meta($post->ID, '_alpha_story_ai_auto', true);
-  // nonce para salvar o checkbox
-  wp_nonce_field('alpha_ai_autogen_meta', 'alpha_ai_autogen_nonce');
   // nonce específico do AJAX “gerar agora”
   $ajax_nonce = wp_create_nonce('alpha_ai_generate_now');
   ?>
-  <p>
-    <label>
-      <input type="checkbox" name="alpha_ai_auto" value="1" <?php checked($auto); ?>>
-      Gerar automaticamente ao salvar
-    </label>
-  </p>
 
   <p>
     <button type="button" class="button button-primary" id="alpha_ai_generate_now">Gerar story agora</button>
@@ -79,22 +70,6 @@ function alpha_ai_autogen_cb($post) {
   <?php
 }
 
-
-
-add_action('save_post_alpha_story', function($post_id, $post, $update){
-  if (wp_is_post_autosave($post_id) || wp_is_post_revision($post_id)) return;
-  $auto = (bool) get_post_meta($post_id, '_alpha_story_ai_auto', true);
-  if (!$auto) return;
-
-  // trava simples pra não rodar duas vezes no mesmo request
-  if (get_transient('alpha_ai_lock_'.$post_id)) return;
-  set_transient('alpha_ai_lock_'.$post_id, 1, 30);
-
-  $res = alpha_ai_generate_for_post($post_id);
-  delete_transient('alpha_ai_lock_'.$post_id);
-}, 10, 3);
-
-
 add_action('wp_ajax_alpha_ai_generate_now', 'alpha_ajax_ai_generate_now');
 
 function alpha_ajax_ai_generate_now() {
@@ -147,30 +122,3 @@ function alpha_ajax_ai_generate_now() {
     'message'  => 'Story gerada/atualizada com sucesso.',
   ]);
 }
-
-// Salva o checkbox “gerar automaticamente” e, se marcado, já gera a story
-add_action('save_post', function($post_id, $post, $update){
-  if (wp_is_post_autosave($post_id) || wp_is_post_revision($post_id)) return;
-  if ($post->post_type !== 'post') return; // <= só posts normais
-
-  // salva o checkbox
-  if (isset($_POST['alpha_ai_autogen_nonce']) && wp_verify_nonce($_POST['alpha_ai_autogen_nonce'], 'alpha_ai_autogen_meta')) {
-    $auto = !empty($_POST['alpha_ai_auto']) ? 1 : 0;
-    update_post_meta($post_id, '_alpha_story_ai_auto', $auto);
-  }
-
-  // se marcado, gera
-  $auto = (bool) get_post_meta($post_id, '_alpha_story_ai_auto', true);
-  if ($auto) {
-    if (!current_user_can('edit_post', $post_id)) return;
-    if (!function_exists('alpha_ai_generate_for_post')) return;
-
-    $res = alpha_ai_generate_for_post($post_id);
-    // opcional: registrar admin notice ou logar WP_Error
-    if (is_wp_error($res)) {
-      error_log('Alpha Story AI erro ao gerar no save_post: ' . $res->get_error_message());
-    }
-  }
-}, 10, 3);
-
-

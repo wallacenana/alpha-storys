@@ -10,7 +10,7 @@ function alpha_admin_bulk_ai_screen(){
   $errors = [];
 
   // defaults UI
-  $status   = isset($_POST['status']) ? sanitize_text_field($_POST['status']) : 'publish';
+  $status   = isset($_POST['status']) ? sanitize_text_field($_POST['status']) : 'draft';
   $cats_sel = isset($_POST['cats']) ? array_map('intval', (array)$_POST['cats']) : [];
   $date_from= isset($_POST['date_from']) ? sanitize_text_field($_POST['date_from']) : '';
   $date_to  = isset($_POST['date_to'])   ? sanitize_text_field($_POST['date_to'])   : '';
