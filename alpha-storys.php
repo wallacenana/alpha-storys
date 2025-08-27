@@ -1,13 +1,14 @@
 <?php
 /**
- * Plugin Name:  Alpha Stories
- * Description:  Cria Web Stories de forma facilitada com o editorpadr達o do Wordpress
+ * Plugin Name:  Alpha Storys
+ * Description:  Cria Web Storys com 1 clique com ChatGPT e visualização e edição no editor do Wordpress
  * Version:      1.0.1
  * Author: Wallace Tavares
  * Author URI: https://wallacetavares.com
- * License: GPLv2 or later
- * License URI: https://www.gnu.org/licenses/gpl-2.0.html
+ * License: GPLv3 or later
+ * License URI: https://www.gnu.org/licenses/gpl-3.0.html
  * Update URI: https://assets.alphaform.com.br/storys/update
+ * Text Domain:  alpha-storys
  */
 
 if (!defined('ABSPATH')) exit;
