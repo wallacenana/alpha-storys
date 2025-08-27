@@ -35,12 +35,12 @@ if (!defined('ABSPATH')) exit;
 global $post;
 
 // Metas e campos
-$pages      = get_post_meta($post->ID, '_alpha_story_pages', true);
+$pages      = get_post_meta($post->ID, '_alpha_storys_pages', true);
 $pages      = is_array($pages) ? $pages : [];
 
-$publisher  = get_post_meta($post->ID, '_alpha_story_publisher', true) ?: (alpha_opt('publisher_name') ?: get_bloginfo('name'));
+$publisher  = get_post_meta($post->ID, '_alpha_storys_publisher', true) ?: (alpha_opt('publisher_name') ?: get_bloginfo('name'));
 
-$logo_id    = (int) get_post_meta($post->ID, '_alpha_story_logo_id', true);
+$logo_id    = (int) get_post_meta($post->ID, '_alpha_storys_logo_id', true);
 $logo_src   = $logo_id ? wp_get_attachment_image_url($logo_id, 'full') : (alpha_get_publisher_logo_url() ?: '');
 
 $ga_id    = alpha_get_ga4_id();

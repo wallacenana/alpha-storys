@@ -86,27 +86,27 @@ function alpha_get_or_create_story_for_post($post_id) {
   $post = get_post($post_id);
   if (!$post) return 0;
 
-  $story_id = (int) get_post_meta($post_id, '_alpha_story_id', true);
+  $story_id = (int) get_post_meta($post_id, '_alpha_storys_id', true);
   if ($story_id && get_post($story_id)) return $story_id;
 
   $q = new WP_Query([
-    'post_type'      => 'alpha_story',
+    'post_type'      => 'alpha_storys',
     'posts_per_page' => 1,
     'post_status'    => ['publish','draft','pending'],
     'meta_query'     => [[
-      'key'   => '_alpha_story_source_post',
+      'key'   => '_alpha_storys_source_post',
       'value' => $post_id,
     ]]
   ]);
   if ($q->have_posts()) {
     $story_id = (int)$q->posts[0]->ID;
     wp_reset_postdata();
-    update_post_meta($post_id, '_alpha_story_id', $story_id);
+    update_post_meta($post_id, '_alpha_storys_id', $story_id);
     return $story_id;
   }
 
   $args = [
-    'post_type'   => 'alpha_story',
+    'post_type'   => 'alpha_storys',
     'post_title'  => $post->post_title,
     'post_status' => 'draft',
     'post_author' => (int)$post->post_author,
@@ -114,14 +114,14 @@ function alpha_get_or_create_story_for_post($post_id) {
   $story_id = wp_insert_post($args);
 
   if ($story_id) {
-    update_post_meta($story_id, '_alpha_story_source_post', $post_id);
-    update_post_meta($post_id,  '_alpha_story_id',         $story_id);
+    update_post_meta($story_id, '_alpha_storys_source_post', $post_id);
+    update_post_meta($post_id,  '_alpha_storys_id',         $story_id);
     $thumb = get_post_thumbnail_id($post_id);
     if ($thumb) set_post_thumbnail($story_id, $thumb);
     $publisher = alpha_opt('publisher_name', get_bloginfo('name'));
-    update_post_meta($story_id, '_alpha_story_publisher', sanitize_text_field($publisher));
+    update_post_meta($story_id, '_alpha_storys_publisher', sanitize_text_field($publisher));
     $logo_id = (int) alpha_opt('publisher_logo_id', 0);
-    if ($logo_id) update_post_meta($story_id, '_alpha_story_logo_id', $logo_id);
+    if ($logo_id) update_post_meta($story_id, '_alpha_storys_logo_id', $logo_id);
   }
 
   return (int)$story_id;
@@ -163,8 +163,8 @@ function alpha_render_story_pages_to_blocks(array $pages, $story_id) {
     $cta_url = isset($p['cta_url'])? sanitize_text_field($p['cta_url']) : '';
     $prompt = isset($p['prompt'])? sanitize_text_field($p['prompt']) : '';
 
-    $blocks .= "<!-- wp:group {\"className\":\"alpha-story-page\"} -->\n";
-    $blocks .= "<div class=\"wp-block-group alpha-story-page\">\n";
+    $blocks .= "<!-- wp:group {\"className\":\"alpha-storys-page\"} -->\n";
+    $blocks .= "<div class=\"wp-block-group alpha-storys-page\">\n";
 
     if ($heading !== '') {
       $blocks .= "<!-- wp:heading {\"level\":2} -->\n";
@@ -227,8 +227,8 @@ function alpha_ai_generate_for_post($post_id) {
     }
     
     if ($system_pt === '') {
-      $system_pt = function_exists('alpha_story_default_prompt_template')
-        ? (string) alpha_story_default_prompt_template()
+      $system_pt = function_exists('alpha_storys_default_prompt_template')
+        ? (string) alpha_storys_default_prompt_template()
         : "Você transforma posts em Web Stories AMP... (prompt padrão de fallback)";
     }
 
@@ -298,12 +298,12 @@ function alpha_ai_generate_for_post($post_id) {
     ];
   }
 
-  // Decide destino: se já for um alpha_story, usa o próprio; se não, cria/pega o irmão
-  $target_id = (get_post_type($post_id) === 'alpha_story')
+  // Decide destino: se já for um alpha_storys, usa o próprio; se não, cria/pega o irmão
+  $target_id = (get_post_type($post_id) === 'alpha_storys')
     ? (int)$post_id
     : alpha_get_or_create_story_for_post((int)$post_id);
 
-  if (!$target_id) return new WP_Error('alpha_story_target', 'Não foi possível criar ou localizar o Web Story.');
+  if (!$target_id) return new WP_Error('alpha_storys_target', 'Não foi possível criar ou localizar o Web Story.');
 
   // Renderiza blocos e salva no editor
   $blocks = alpha_render_story_pages_to_blocks($pages, $target_id);
@@ -317,7 +317,7 @@ function alpha_ai_generate_for_post($post_id) {
   ]);
 
   // Mantém meta com o JSON bruto para reutilização
-  update_post_meta($target_id, '_alpha_story_pages', $pages);
+  update_post_meta($target_id, '_alpha_storys_pages', $pages);
 
   return ['ok' => true, 'count' => count($pages), 'target_id' => (int)$target_id];
 }

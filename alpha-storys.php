@@ -3,8 +3,11 @@
  * Plugin Name:  Alpha Stories
  * Description:  Cria Web Stories de forma facilitada com o editorpadr達o do Wordpress
  * Version:      1.0.0
- * Author:       Wallace Tavares
- * Text Domain:  alpha-story
+ * Author: Wallace Tavares
+ * Author URI: https://wallacetavares.com
+ * License: GPLv2 or later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
+ * Update URI: https://assets.alphaform.com.br/storys/update
  */
 
 if (!defined('ABSPATH')) exit;
@@ -22,7 +25,7 @@ function alpha_register_cpt_story() {
   $labels = [ /* ... seus labels iguais ... */ ];
 
   $args = [
-    'label'               => __('Alpha Stories', 'alpha-story'),
+    'label'               => __('Alpha Stories', 'alpha-storys'),
     'labels'              => $labels,
     'public'              => true,
     'publicly_queryable'  => true,
@@ -39,7 +42,7 @@ function alpha_register_cpt_story() {
     'hierarchical'        => false,
     'has_archive'         => true,
     'exclude_from_search' => false,
-    'rewrite'             => [ 'slug' => 'alpha-story', 'with_front' => true ],
+    'rewrite'             => [ 'slug' => 'alpha-storys', 'with_front' => true ],
     'supports'            => ['title','editor','thumbnail','excerpt','author','comments','custom-fields','revisions'],
     'taxonomies'          => ['category'],
   ];

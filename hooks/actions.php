@@ -4,8 +4,8 @@
 add_action('save_post', function ($post_id, $post, $update) {
   if (wp_is_post_autosave($post_id) || wp_is_post_revision($post_id)) return;
 
-  // Agora aceita 'alpha_story' como fontes
-  if (!in_array($post->post_type, ['alpha_story'], true)) return;
+  // Agora aceita 'alpha_storys' como fontes
+  if (!in_array($post->post_type, ['alpha_storys'], true)) return;
 
   if (!function_exists('get_field')) return;
   $enabled = (bool) get_field('story_enable', $post_id);
@@ -21,7 +21,7 @@ add_action('save_post', function ($post_id, $post, $update) {
   $publisher = get_bloginfo('name');
 
   // cria ou atualiza o CPT web_story
-  $story_id = (int) get_post_meta($post_id, '_alpha_story_id', true);
+  $story_id = (int) get_post_meta($post_id, '_alpha_storys_id', true);
   $args = [
     'post_type'   => 'web_story',
     'post_title'  => get_the_title($post_id),
@@ -34,21 +34,21 @@ add_action('save_post', function ($post_id, $post, $update) {
     wp_update_post($args);
   } else {
     $story_id = wp_insert_post($args);
-    update_post_meta($post_id, '_alpha_story_id', $story_id);
+    update_post_meta($post_id, '_alpha_storys_id', $story_id);
   }
 
   if ($poster_id) set_post_thumbnail($story_id, $poster_id);
 
   // salva metadados da story
-  update_post_meta($story_id, '_alpha_story_source_post', $post_id);
-  update_post_meta($story_id, '_alpha_story_pages', $pages);
-  update_post_meta($story_id, '_alpha_story_publisher', sanitize_text_field($publisher));
+  update_post_meta($story_id, '_alpha_storys_source_post', $post_id);
+  update_post_meta($story_id, '_alpha_storys_pages', $pages);
+  update_post_meta($story_id, '_alpha_storys_publisher', sanitize_text_field($publisher));
 
   //   story
-  update_post_meta($story_id, '_alpha_story_logo_id', $logo_id);
-  update_post_meta($post_id, '_alpha_story_pages', $pages);
-  update_post_meta($post_id, '_alpha_story_publisher', get_bloginfo('name'));
-  update_post_meta($post_id, '_alpha_story_logo_id', (int) get_field('story_publisher_logo', $post_id));
+  update_post_meta($story_id, '_alpha_storys_logo_id', $logo_id);
+  update_post_meta($post_id, '_alpha_storys_pages', $pages);
+  update_post_meta($post_id, '_alpha_storys_publisher', get_bloginfo('name'));
+  update_post_meta($post_id, '_alpha_storys_logo_id', (int) get_field('story_publisher_logo', $post_id));
 }, 10, 3);
 
 
@@ -182,7 +182,7 @@ add_action('acf/init', function () {
       ],
     ],
     'location' => [
-      [['param' => 'post_type', 'operator' => '==', 'value' => 'alpha_story']],
+      [['param' => 'post_type', 'operator' => '==', 'value' => 'alpha_storys']],
     ],
     'position'   => 'side',
     'menu_order' => 0,   

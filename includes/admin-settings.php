@@ -13,7 +13,7 @@ add_action('admin_menu', function () {
   );
 
   // Adicionar novo (CPT)
-  add_submenu_page('alpha-stories', 'Adicionar novo', 'Adicionar novo', 'edit_posts', 'post-new.php?post_type=alpha_story', null);
+  add_submenu_page('alpha-stories', 'Adicionar novo', 'Adicionar novo', 'edit_posts', 'post-new.php?post_type=alpha_storys', null);
 
   // IA em Massa
 //   add_submenu_page('alpha-stories', 'IA em Massa', 'IA em Massa', 'manage_options', 'alpha-stories-bulk', 'alpha_admin_bulk_ai_screen');
@@ -26,8 +26,8 @@ add_action('admin_menu', function () {
     'Prompt',
     'Prompt',
     'manage_options',
-    'alpha-story-prompt',
-    'alpha_story_settings_page_render'
+    'alpha-storys-prompt',
+    'alpha_storys_settings_page_render'
   );
 });
 
@@ -205,7 +205,7 @@ function alpha_admin_settings_screen()
 
 add_action('admin_init', function () {
   /* Salvar em alpha_stories_options[ai_prompt_template] */
-  register_setting('alpha_story_settings_group', 'alpha_stories_options', [
+  register_setting('alpha_storys_settings_group', 'alpha_stories_options', [
     'type'              => 'array',
     'sanitize_callback' => function ($in) {
       $out = is_array($in) ? $in : [];
@@ -216,7 +216,7 @@ add_action('admin_init', function () {
     'default' => [],
   ]);
 
-  add_settings_section('alpha_story_main', '', '__return_false', 'alpha_story_settings_page');
+  add_settings_section('alpha_storys_main', '', '__return_false', 'alpha_storys_settings_page');
 
   add_settings_field(
     'ai_prompt_template',
@@ -224,8 +224,8 @@ add_action('admin_init', function () {
     function () {
       $o   = get_option('alpha_stories_options', []);
       $val = isset($o['ai_prompt_template']) ? (string)$o['ai_prompt_template'] : '';
-      $placeholder = function_exists('alpha_story_default_prompt_template')
-        ? alpha_story_default_prompt_template()
+      $placeholder = function_exists('alpha_storys_default_prompt_template')
+        ? alpha_storys_default_prompt_template()
         : 
         "Digite o seu prompt";
   ?>
@@ -236,12 +236,12 @@ add_action('admin_init', function () {
     <p class="description">Deixe em branco para usar o prompt padrão do plugin.</p>
   <?php
     },
-    'alpha_story_settings_page',
-    'alpha_story_main'
+    'alpha_storys_settings_page',
+    'alpha_storys_main'
   );
 });
 
-function alpha_story_default_prompt_template() {
+function alpha_storys_default_prompt_template() {
   // fallback redundante caso admin-settings.php não esteja carregado
   $tpl = <<<EOT
 Transforme posts em Web Stories AMP. Gere slides concisos (até ~240 caracteres no corpo). O conteúdo completo deve ter pelo menos 30% de palavras de transição no padrão do Yoast, como mas, porém, entretanto, por isso, em resumo — coisas nesse sentido. No máximo 10 páginas; a primeira página deve ter um título mais chamativo, no padrão de título Discovery, que realmente desperte muita curiosidade (nada de informativo como \"introdução a x\"). A página 5 deve ser um CTA para um grupo do WhatsApp com conteúdos do site, com link para o grupo no final; o primeiro item fica sem CTA, daí o segundo tem CTA e vai intercalando assim: post com CTA, post sem CTA. O CTA é um texto linkado no final do body; exemplo: saiba mais (onde \"saiba mais\" é um link como <a href=\"#\">Saiba mais</a>); gere CTAs variados; a conclusão deve ter um CTA desses também. Todos os links (com exceção do CTA para o grupo) devem mandar para o post em questão. Gere um prompt para que seja gerada a imagem daquele conteúdo; o prompt da imagem deve ser realista, não contendo elementos voltados para ilustração; o prompt deve ser completo (mínimo de 150 caracteres).
@@ -252,14 +252,14 @@ EOT;
 }
 
 /* Render do formulário simples */
-function alpha_story_settings_page_render()
+function alpha_storys_settings_page_render()
 { ?>
   <div class="wrap">
     <h1>Alpha Story</h1>
     <form method="post" action="options.php">
       <?php
-      settings_fields('alpha_story_settings_group');
-      do_settings_sections('alpha_story_settings_page');
+      settings_fields('alpha_storys_settings_group');
+      do_settings_sections('alpha_storys_settings_page');
       submit_button();
       ?>
     </form>
