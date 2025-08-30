@@ -47,13 +47,13 @@ $ga_id    = alpha_get_ga4_id();
 $ga_enable= !empty($ga_id);
 
 // Playback (sem amp-bind): valor fixo por página
-$autoplay   = function_exists('get_field') ? (bool) get_field('story_autoplay', $post->ID) : true;
-$seconds    = (int) (function_exists('get_field') ? (get_field('story_duration', $post->ID) ?: 7) : 7);
+$autoplay   = function_exists('get_field') ? (bool) get_field('storys_autoplay', $post->ID) : true;
+$seconds    = (int) (function_exists('get_field') ? (get_field('storys_duration', $post->ID) ?: 7) : 7);
 $seconds    = $seconds > 0 ? $seconds : 7;
 
 // Poster obrigatório
 $poster_id  = get_post_thumbnail_id($post->ID);
-$poster     = $poster_id ? wp_get_attachment_image_url($poster_id, 'story_poster') : '';
+$poster     = $poster_id ? wp_get_attachment_image_url($poster_id, 'storys_poster') : '';
 if (!$poster) { foreach ($pages as $p) { if (!empty($p['image'])) { $poster = esc_url($p['image']); break; } } }
 if (!$poster) { $poster = get_stylesheet_directory_uri() . '/assets/story-poster-fallback.jpg'; }
 if (!$logo_src) { $logo_src = $poster; }
@@ -64,9 +64,16 @@ if (count($pages) === 0) {
 }
 
 // Estilo, fonte e acento
-$style  = function_exists('get_field') ? (get_field('story_style', $post->ID) ?: 'clean') : 'clean';
-$font   = function_exists('get_field') ? (get_field('story_font',  $post->ID) ?: alpha_opt('default_font','inter'))  : alpha_opt('default_font','inter');
-$accent = function_exists('get_field') ? (get_field('story_accent_color',$post->ID) ?: alpha_opt('accent_color','#ffffff')) : alpha_opt('accent_color','#ffffff');
+$bg_color = function_exists('get_field')
+  ? (get_field('storys_background_color', $post->ID) ?: '#ffffff')
+  : (get_post_meta($post->ID, '_alpha_storys_background_color', true) ?: '#ffffff');
+$txt_color = function_exists('get_field')
+  ? (get_field('storys_text_color', $post->ID) ?: '#000000')
+  : (get_post_meta($post->ID, '_alpha_storys_text_color', true) ?: '#000000');
+
+$style  = function_exists('get_field') ? (get_field('storys_style', $post->ID) ?: 'clean') : 'clean';
+$font   = function_exists('get_field') ? (get_field('storys_font',  $post->ID) ?: alpha_opt('default_font','inter'))  : alpha_opt('default_font','inter');
+$accent = function_exists('get_field') ? (get_field('storys_accent_color',$post->ID) ?: alpha_opt('accent_color','#ffffff')) : alpha_opt('accent_color','#ffffff');
 
 // Mapeia Google Fonts
 function alpha_font_href($font) {
@@ -95,7 +102,7 @@ $font_family = $font === 'system'
   <title><?php echo esc_html(get_the_title($post)); ?></title>
   <meta name="viewport" content="width=device-width,minimum-scale=1,initial-scale=1">
   <?php
-    // ===== JSON-LD para Web Story (Article + AmpStory) =====
+    // ===== JSON-LD para Web storys (Article + Ampstorys) =====
     $permalink     = get_permalink($post);
     $headline      = get_the_title($post);
     $description   = has_excerpt($post)
@@ -154,7 +161,7 @@ $font_family = $font === 'system'
     ];
     if ($publisher_logo) $publisher_data['logo'] = $publisher_logo;
     
-    // Monta o Article (+ AmpStory opcional)
+    // Monta o Article (+ Ampstorys opcional)
     $schema = [
       '@context'          => 'https://schema.org',
       '@type'             => ['Article','AmpStory'],
@@ -206,8 +213,8 @@ $font_family = $font === 'system'
     /* Fonte e estilos base */
     amp-story{ font-family: <?php echo $font_family; ?>; }
     .pad{ padding:24px }
-    .h2{ font-size:26px; line-height:1.1; color:#fff; margin:0 0 10px; text-shadow:0 4px 24px rgba(0,0,0,.35);padding-left: 15px; border-left: 3px solid <?php echo esc_html($accent); ?>;}
-    .p{ font-size:18px; color:#fff; margin:0; text-shadow:0 4px 24px rgba(0,0,0,.35) }
+    .h2{ font-size:26px; line-height:1.1; color:#fff; margin:0 0 10px; ;padding-left: 15px; border-left: 3px solid <?php echo esc_html($accent); ?>;}
+    .p{ font-size:18px; color:#fff; margin:0; }
     .btn{ display:inline-block; padding:12px 20px;color:#000; border-radius:10px; text-decoration:none; font-weight:700; box-shadow:0 4px 24px rgba(0,0,0,.35) }
     .bg{ width:100%; height:100%; background:#000 center / cover no-repeat }
     .overlay{ position:absolute; top:0; right:0; bottom:0; left:0; background:linear-gradient(180deg, rgba(0,0,0,.35), rgba(0,0,0,.55)) }
@@ -229,7 +236,7 @@ $font_family = $font === 'system'
 
     /* CARD - imagem em cartão, texto abaixo */
     .style-card .card{
-      width:78%; max-width:820px; height:58%;
+      width:78%; max-width:820px; height:260px;
       border-radius:24px; overflow:hidden;
       background:#111 center / cover no-repeat;
       box-shadow:0 4px 24px rgba(0,0,0,.35);
@@ -239,6 +246,7 @@ $font_family = $font === 'system'
     amp-story-grid-layer{
         border-bottom: 5px solid <?php echo esc_html($accent); ?>;
     }
+    
     
     .style-card .layer-content{ align-content:end; justify-content:end; text-align:center; padding:24px; }
 
@@ -250,8 +258,37 @@ $font_family = $font === 'system'
     }
     .style-split .split .right{ flex:1; color:#fff; }
     .style-split .right .h2{ margin-bottom:12px }
+    .h2, .p { color: <?php echo esc_html($txt_color); ?>; }
     /* Fundo desfocado tipo Web Stories plugin */
     .bg-blur { filter: blur(22px) saturate(1.1); transform: scale(1.08); }
+    
+    
+    /*img top*/
+    
+    /* TOP — imagem no topo (full width), borda arredondada embaixo; textos abaixo centralizados (container), alinhados à esquerda */
+    .style-top .bg-solid{ position:absolute; inset:0; background: <?php echo esc_html($bg_color); ?>; }
+    .style-top .layer-content-top{ align-content:start; justify-content:start; padding-top:0; }
+    .style-top .hero img{
+        object-fit: cover
+    }
+    
+    .style-top .hero{
+      position:relative;
+      width:100%;
+      height:56vh;               /* altura “razoável” */
+      max-height:65%;
+      overflow:hidden;
+      object-fit: cover;
+      border-radius: 0 0 12px 12px;
+    }
+    .style-top .content{ width:100%; padding:18px 0 0; }
+    .style-top .content-inner{
+      width:86%;
+      max-width:820px;
+      margin:0 auto;             /* centraliza o container */
+      text-align:left;           /* mas textos alinhados à esquerda */
+    }
+
 
 /* opcional: você já tem .overlay; ela escurece por cima do blur */
 
@@ -330,6 +367,32 @@ $font_family = $font === 'system'
             <p class="p"<?php echo $anim_p_clean; ?>><?php echo esc_html($p['body']); ?></p>
           <?php endif; ?>
         </amp-story-grid-layer>
+
+    <?php elseif ($style === 'top'): ?>
+      <!-- Fundo sólido com a cor escolhida -->
+      <amp-story-grid-layer template="fill">
+        <div class="bg-solid"></div>
+      </amp-story-grid-layer>
+    
+      <!-- Hero (imagem no topo) + textos embaixo -->
+      <amp-story-grid-layer template="vertical" class="layer-content-top" style="padding: 0; display: block!important">
+        <div class="hero"<?php echo $anim_card_div; ?>>
+          <?php if ($img): ?>
+            <amp-img layout="fill" src="<?php echo $img; ?>" alt=""></amp-img>
+          <?php endif; ?>
+        </div>
+    
+        <div class="content">
+          <div class="content-inner">
+            <?php if (!empty($p['heading'])): ?>
+              <h2 class="h2"<?php echo $anim_h2_clean; ?>><?php echo esc_html($p['heading']); ?></h2>
+            <?php endif; ?>
+            <?php if (!empty($p['body'])): ?>
+              <p class="p"<?php echo $anim_p_clean; ?>><?php echo esc_html($p['body']); ?></p>
+            <?php endif; ?>
+          </div>
+        </div>
+      </amp-story-grid-layer>
 
       <?php elseif ($style === 'split'): ?>
         <!-- Fundo desfocado + overlay -->

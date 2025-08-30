@@ -1,61 +1,91 @@
 <?php
 
-// alpha-stories.php (principal)
+// alpha-storys.php (principal)
 if ( ! defined('ABSPATH') ) exit;
 // === 1) Constrói as páginas a partir do conteúdo: AGORA divide por <hr> (linha horizontal) ===
-function alpha_build_story_pages_from_content($html) {
+function alpha_build_storys_pages_from_content($html) {
   $pages   = [];
   $content = do_shortcode($html);
 
-  // Normaliza o bloco Gutenberg de separador para um marcador
-  // <!-- wp:separator --> ... <hr ...> ... <!-- /wp:separator -->
+  // 1) Normaliza separadores do Gutenberg em marcador
+  // Forma com bloco aberto/fechado:
   $content = preg_replace(
     '/<!--\s*wp:separator[^>]*-->[\s\S]*?<!--\s*\/wp:separator\s*-->/i',
     '[[ALPHA_SPLIT]]',
     $content
   );
-
-  // Converte QUALQUER <hr> em marcador
+  // Forma autocontenida:
+  $content = preg_replace(
+    '/<!--\s*wp:separator\b[^>]*\/\s*-->/i',
+    '[[ALPHA_SPLIT]]',
+    $content
+  );
+  // Qualquer <hr> vira marcador
   $content = preg_replace('/<hr\b[^>]*>/i', '[[ALPHA_SPLIT]]', $content);
 
-  // Corta por marcador
-  $sections = array_filter(array_map('trim', explode('[[ALPHA_SPLIT]]', $content)), 'strlen');
+  $has_marker = (strpos($content, '[[ALPHA_SPLIT]]') !== false);
 
-  if (count($sections) > 1) {
-    // Modo novo: cada pedaço entre <hr> vira página
-    foreach ($sections as $sec_html) {
-      $pages[] = alpha_finalize_section('', $sec_html); // título opcional dentro do bloco
-    }
-  } else {
-    // Fallback legado: cada <h2> inicia uma página
-    $pattern = '/(<h2[^>]*>.*?<\/h2>)/i';
-    $parts   = preg_split($pattern, $content, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
+  // Helper: dentro de um pedaço (entre HRs), dividir por H2 múltiplos
+  $build_from_chunk = function($chunk_html) {
+    $chunk_html = trim($chunk_html);
+    if ($chunk_html === '') return [];
 
+    // quebra preservando <h2> como delimitadores
+    $parts = preg_split('/(<h2[^>]*>.*?<\/h2>)/is', $chunk_html, -1,
+      PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
+
+    $pages_local = [];
     $current_title = '';
     $current_body  = '';
-    foreach ($parts as $chunk) {
-      if (preg_match('/^<h2[^>]*>(.*?)<\/h2>$/is', $chunk, $m)) {
-        if ($current_title || $current_body) {
-          $pages[] = alpha_finalize_section($current_title, $current_body);
+
+    $saw_h2 = false;
+    foreach ($parts as $piece) {
+      if (preg_match('/^<h2[^>]*>(.*?)<\/h2>$/is', $piece, $m)) {
+        // fecha a página anterior (se tiver conteúdo)
+        if ($current_title || trim(wp_strip_all_tags($current_body)) !== '') {
+          $pages_local[] = alpha_finalize_section($current_title, $current_body);
+          $current_body  = '';
         }
+        $saw_h2 = true;
         $current_title = wp_strip_all_tags($m[1]);
-        $current_body  = '';
       } else {
-        $current_body .= $chunk;
+        $current_body .= $piece;
       }
     }
-    if ($current_title || $current_body) {
-      $pages[] = alpha_finalize_section($current_title, $current_body);
+    // Última página do pedaço
+    if ($saw_h2 || trim(wp_strip_all_tags($current_body)) !== '') {
+      $pages_local[] = alpha_finalize_section($current_title, $current_body);
     }
+
+    // Se não havia H2 nesse chunk, gera uma única página com o corpo todo
+    if (!$saw_h2 && empty($pages_local)) {
+      $pages_local[] = alpha_finalize_section('', $chunk_html);
+    }
+
+    return $pages_local;
+  };
+
+  if ($has_marker) {
+    // 2) Sempre que houver separadores, cada pedaço vira 1..n páginas (H2 dentro também quebra)
+    $chunks = explode('[[ALPHA_SPLIT]]', $content);
+    foreach ($chunks as $chunk) {
+      $chunk = trim($chunk);
+      if (!strlen(trim(wp_strip_all_tags($chunk)))) continue; // ignora vazios reais
+      $pages = array_merge($pages, $build_from_chunk($chunk));
+    }
+  } else {
+    // 3) Sem separadores: quebrar o conteúdo inteiro por H2 múltiplos
+    $pages = $build_from_chunk($content);
   }
 
-  // Remove páginas totalmente vazias
+  // 4) Limpa totalmente vazias
   $pages = array_values(array_filter($pages, function ($p) {
     return !empty($p['heading']) || !empty($p['body']) || !empty($p['image']);
   }));
 
   return $pages;
 }
+
 
 // === 2) Fecha/normaliza cada seção: título opcional (1º <h2>), CTA e limpeza do texto ===
 function alpha_finalize_section($title, $body_html) {
@@ -65,8 +95,8 @@ function alpha_finalize_section($title, $body_html) {
     $body_html = str_replace($mh2[0], '', $body_html);
   }
 
-  // Extrai CTA via shortcode [story-cta] (já remove do HTML)
-  $cta = alpha_extract_story_cta($body_html);
+  // Extrai CTA via shortcode [storys-cta] (já remove do HTML)
+  $cta = alpha_extract_storys_cta($body_html);
 
   // Primeira imagem da seção
   $img = '';
@@ -108,12 +138,12 @@ function alpha_finalize_section($title, $body_html) {
 
 
 // 2) Helper para extrair o shortcode da seção (Gutenberg salva como bloco "shortcode")
-function alpha_extract_story_cta(&$html)
+function alpha_extract_storys_cta(&$html)
 {
   $out = ['type' => '', 'text' => '', 'url' => '', 'icon' => ''];
 
   // pega o shortcode (mesmo se vier dentro de <!-- wp:shortcode -->)
-  if (preg_match('/\[story-cta([^\]]*)\]/i', $html, $m)) {
+  if (preg_match('/\[storys-cta([^\]]*)\]/i', $html, $m)) {
     $atts = shortcode_parse_atts($m[1] ?? '');
     $type = isset($atts['type']) ? strtolower(trim($atts['type'])) : '';
     if (!in_array($type, ['button', 'swipe'], true)) $type = 'button';
@@ -136,16 +166,17 @@ function alpha_from_blocks(array $blocks)
   $pages = [];
   $current = [
     'heading'  => '',
-    'body' => '',
-    'image' => '',
+    'body'     => '',
+    'image'    => '',
     'cta_text' => '',
-    'cta_url' => '',
+    'cta_url'  => '',
     'cta_type' => '',
     'cta_icon' => ''
   ];
 
   $push = function () use (&$pages, &$current) {
-    if ($current['heading'] || $current['body'] || $current['image']) {
+    $has_body = trim($current['body']) !== '';
+    if ($current['heading'] || $has_body || $current['image']) {
       // limita corpo
       if (function_exists('mb_strlen') && function_exists('mb_substr')) {
         if (mb_strlen($current['body']) > 240) $current['body'] = mb_substr($current['body'], 0, 240) . '...';
@@ -156,10 +187,10 @@ function alpha_from_blocks(array $blocks)
     }
     $current = [
       'heading'  => '',
-      'body' => '',
-      'image' => '',
+      'body'     => '',
+      'image'    => '',
       'cta_text' => '',
-      'cta_url' => '',
+      'cta_url'  => '',
       'cta_type' => '',
       'cta_icon' => ''
     ];
@@ -172,88 +203,88 @@ function alpha_from_blocks(array $blocks)
       $inner = $b['innerBlocks'] ?? [];
       $html  = $b['innerHTML'] ?? '';
 
-      // H2 inicia nova página
+      // === QUEBRAS DE PÁGINA ===
+      // 1) H2 inicia nova página
       if ($name === 'core/heading' && !empty($attrs['level']) && (int)$attrs['level'] === 2) {
         $push();
-        $current['heading'] = wp_strip_all_tags($html);
+        // texto do heading
+        $text = '';
+        if (!empty($attrs['content'])) {
+          $text = wp_strip_all_tags($attrs['content']);
+        } elseif ($html) {
+          $text = wp_strip_all_tags($html);
+        }
+        $current['heading'] = $text;
       }
-      // Parágrafos acumulam texto e capturam 1º link como fallback de CTA
+      // 2) Separador do Gutenberg força quebra
+      elseif ($name === 'core/separator') {
+        $push();
+      }
+      // 3) Bloco HTML contendo <hr> também força quebra
+      elseif ($name === 'core/html' && preg_match('/<hr\b/i', $html)) {
+        $push();
+      }
+
+      // === CONTEÚDO/CTAs/IMAGEM ===
       elseif ($name === 'core/paragraph') {
-        // 1) Se o parágrafo contiver [story-cta ...], captura primeiro
-        if (preg_match('/\[story-cta\b([^\]]*)\]/i', $html, $mm)) {
+        // captura [storys-cta ...] se existir
+        if (preg_match('/\[storys-cta\b([^\]]*)\]/i', $html, $mm)) {
           $atts = shortcode_parse_atts($mm[1] ?? '');
           $type = isset($atts['type']) ? strtolower(trim($atts['type'])) : '';
-          if (!in_array($type, ['button', 'swipe'], true)) $type = ''; // deixa vazio p/ cair no fallback "swipe"
-
+          if (!in_array($type, ['button', 'swipe'], true)) $type = '';
           if (!empty($atts['text'])) $current['cta_text'] = sanitize_text_field($atts['text']);
           if (!empty($atts['url']))  $current['cta_url']  = esc_url_raw($atts['url']);
           if (!empty($atts['icon'])) $current['cta_icon'] = esc_url_raw($atts['icon']);
           if ($type) $current['cta_type'] = $type;
-
-          // remove o shortcode do HTML antes de extrair texto
-          $html = str_replace($mm[0], '', $html);
+          $html = str_replace($mm[0], '', $html); // remove o shortcode do corpo
         }
-
-        // 2) Acumula texto e pega 1º link como fallback
+        // acumula o texto
         $text = wp_strip_all_tags($html);
         if ($text) $current['body'] .= ($current['body'] ? ' ' : '') . $text;
 
+        // fallback CTA: 1º link do parágrafo
         if (empty($current['cta_url']) && preg_match('/<a[^>]+href=["\']([^"\']+)["\'][^>]*>(.*?)<\/a>/i', $html, $m)) {
           $current['cta_url']  = esc_url_raw($m[1]);
           if (empty($current['cta_text'])) $current['cta_text'] = wp_strip_all_tags($m[2]);
         }
       }
-      // Imagem (1ª da seção) vira background
       elseif ($name === 'core/image') {
         if (empty($current['image'])) {
           $url = '';
           if (!empty($attrs['id'])) {
-            $url = wp_get_attachment_image_url((int)$attrs['id'], 'story_poster') ?: '';
+            $url = wp_get_attachment_image_url((int)$attrs['id'], 'storys_poster') ?: '';
           }
           if (!$url && !empty($attrs['url'])) $url = esc_url_raw($attrs['url']);
           if (!$url && preg_match('/<img[^>]+src=["\']([^"\']+)["\']/', $html, $m)) $url = esc_url_raw($m[1]);
           if ($url) $current['image'] = $url;
         }
       }
-      // Shortcode: [story-cta type="button|swipe" text="..." url="..." icon="..."]
       elseif ($name === 'core/shortcode') {
-        // Gutenberg costuma guardar o shortcode em attrs.text
         $sc = '';
-        if (!empty($attrs['text'])) {
-          $sc = (string) $attrs['text'];
-        } elseif (!empty($html)) {
-          $sc = $html;
-        }
-        if ($sc && preg_match('/\[story-cta\b([^\]]*)\]/i', $sc, $mm)) {
+        if (!empty($attrs['text'])) $sc = (string) $attrs['text'];
+        elseif (!empty($html))      $sc = $html;
+        if ($sc && preg_match('/\[storys-cta\b([^\]]*)\]/i', $sc, $mm)) {
           $atts = shortcode_parse_atts($mm[1] ?? '');
           $type = isset($atts['type']) ? strtolower(trim($atts['type'])) : '';
-          if (!in_array($type, ['button', 'swipe'], true)) $type = ''; // vazio -> fallback "swipe" no template
-
+          if (!in_array($type, ['button', 'swipe'], true)) $type = '';
           if (!empty($atts['text'])) $current['cta_text'] = sanitize_text_field($atts['text']);
           if (!empty($atts['url']))  $current['cta_url']  = esc_url_raw($atts['url']);
           if (!empty($atts['icon'])) $current['cta_icon'] = esc_url_raw($atts['icon']);
           if ($type) $current['cta_type'] = $type;
         }
       }
-      // Bloco de botão do Gutenberg
       elseif ($name === 'core/button') {
-        // tenta pegar attrs primeiro
         if (empty($current['cta_url']) && !empty($attrs['url'])) {
           $current['cta_url'] = esc_url_raw($attrs['url']);
           $current['cta_type'] = $current['cta_type'] ?: 'button';
         }
         if (empty($current['cta_text'])) {
-          // WP salva o texto no innerHTML do <a>
           if (preg_match('/<a[^>]*>(.*?)<\/a>/i', $html, $tm)) {
             $current['cta_text'] = wp_strip_all_tags($tm[1]);
           } elseif (!empty($attrs['text'])) {
             $current['cta_text'] = sanitize_text_field($attrs['text']);
           }
         }
-      }
-      // Container de botões (pode ter innerBlocks com core/button)
-      elseif ($name === 'core/buttons') {
-        // nada aqui; os botões vêm nos innerBlocks
       }
 
       // desce na árvore
@@ -262,20 +293,21 @@ function alpha_from_blocks(array $blocks)
   };
 
   $walk($blocks);
-  $push();
+  $push(); // última página (se tiver conteúdo)
+
   return $pages;
 }
 
-function alpha_story_get_or_create_story($source_post_id) {
-  $existing = (int) get_post_meta($source_post_id, '_alpha_story_id', true);
+function alpha_storys_get_or_create_storys($source_post_id) {
+  $existing = (int) get_post_meta($source_post_id, '_alpha_storys_id', true);
   if ($existing && get_post($existing)) {
     return $existing;
   }
 
   $q = new WP_Query([
-    'post_type'      => 'alpha_story',
+    'post_type'      => 'alpha_storys',
     'post_status'    => ['publish','draft','pending','future','private'],
-    'meta_key'       => '_alpha_story_source_post',
+    'meta_key'       => '_alpha_storys_source_post',
     'meta_value'     => $source_post_id,
     'fields'         => 'ids',
     'posts_per_page' => 1,
@@ -283,12 +315,12 @@ function alpha_story_get_or_create_story($source_post_id) {
   ]);
   if ($q->have_posts()) {
     $id = (int) $q->posts[0];
-    update_post_meta($source_post_id, '_alpha_story_id', $id);
+    update_post_meta($source_post_id, '_alpha_storys_id', $id);
     return $id;
   }
 
   $args = [
-    'post_type'   => 'alpha_story',
+    'post_type'   => 'alpha_storys',
     'post_title'  => get_the_title($source_post_id),
     'post_status' => 'draft',
     'post_author' => (int) get_post_field('post_author', $source_post_id),
@@ -296,20 +328,20 @@ function alpha_story_get_or_create_story($source_post_id) {
   $id = wp_insert_post($args, true);
   if (is_wp_error($id)) return $id;
 
-  update_post_meta($id, '_alpha_story_source_post', (int)$source_post_id);
-  update_post_meta($source_post_id, '_alpha_story_id', (int)$id);
+  update_post_meta($id, '_alpha_storys_source_post', (int)$source_post_id);
+  update_post_meta($source_post_id, '_alpha_storys_id', (int)$id);
 
   $thumb_id = get_post_thumbnail_id($source_post_id);
   if ($thumb_id) set_post_thumbnail($id, $thumb_id);
 
-  if (function_exists('alpha_stories_options')) {
-    $o = alpha_stories_options();
+  if (function_exists('alpha_storys_options')) {
+    $o = alpha_storys_options();
     if (!empty($o['publisher_logo_id'])) {
-      update_post_meta($id, '_alpha_story_logo_id', (int)$o['publisher_logo_id']);
+      update_post_meta($id, '_alpha_storys_logo_id', (int)$o['publisher_logo_id']);
     }
     update_post_meta(
       $id,
-      '_alpha_story_publisher',
+      '_alpha_storys_publisher',
       !empty($o['publisher_name']) ? sanitize_text_field($o['publisher_name']) : get_bloginfo('name')
     );
   }

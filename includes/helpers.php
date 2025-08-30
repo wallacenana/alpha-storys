@@ -4,13 +4,13 @@ if (!defined('ABSPATH')) exit;
 /** =========================
  *  Opções e utilitários
  *  ========================= */
-function alpha_stories_options() {
-  $o = get_option('alpha_stories_options', []);
+function alpha_storys_options() {
+  $o = get_option('alpha_storys_options', []);
   return is_array($o) ? $o : [];
 }
 
 function alpha_opt($key, $default = null) {
-  $opts = alpha_stories_options();
+  $opts = alpha_storys_options();
   return array_key_exists($key, $opts) ? $opts[$key] : $default;
 }
 
@@ -19,7 +19,7 @@ function alpha_ai_get_api_key(): string {
   if (defined('OPENAI_API_KEY')   && OPENAI_API_KEY)   return trim(OPENAI_API_KEY);
   $env = getenv('OPENAI_API_KEY');
   if (is_string($env) && trim($env) !== '') return trim($env);
-  $o = alpha_stories_options();
+  $o = alpha_storys_options();
   if (!empty($o['ai_api_key'])) return trim((string)$o['ai_api_key']);
   foreach (['alpha_ai_openai_api_key','alpha_ai_api_key','openai_api_key'] as $name) {
     $v = get_option($name);
@@ -29,18 +29,18 @@ function alpha_ai_get_api_key(): string {
 }
 
 function alpha_ai_get_model(): string {
-  $o = alpha_stories_options();
+  $o = alpha_storys_options();
   return !empty($o['ai_model']) ? (string)$o['ai_model'] : 'gpt-4o-mini';
 }
 
 function alpha_ai_get_temperature(): float {
-  $o = alpha_stories_options();
+  $o = alpha_storys_options();
   $t = isset($o['ai_temperature']) ? (float)$o['ai_temperature'] : 0.4;
   return max(0, min(1, $t));
 }
 
 function alpha_ai_get_default_brief(): string {
-  $o = alpha_stories_options();
+  $o = alpha_storys_options();
   return isset($o['ai_brief_default']) ? (string)$o['ai_brief_default'] : '';
 }
 
@@ -80,14 +80,14 @@ function alpha_get_publisher_logo_url($size = 'full') {
 }
 
 /** =========================
- *  Story: criar ou localizar
+ *  storys: criar ou localizar
  *  ========================= */
-function alpha_get_or_create_story_for_post($post_id) {
+function alpha_get_or_create_storys_for_post($post_id) {
   $post = get_post($post_id);
   if (!$post) return 0;
 
-  $story_id = (int) get_post_meta($post_id, '_alpha_storys_id', true);
-  if ($story_id && get_post($story_id)) return $story_id;
+  $storys_id = (int) get_post_meta($post_id, '_alpha_storys_id', true);
+  if ($storys_id && get_post($storys_id)) return $storys_id;
 
   $q = new WP_Query([
     'post_type'      => 'alpha_storys',
@@ -99,10 +99,10 @@ function alpha_get_or_create_story_for_post($post_id) {
     ]]
   ]);
   if ($q->have_posts()) {
-    $story_id = (int)$q->posts[0]->ID;
+    $storys_id = (int)$q->posts[0]->ID;
     wp_reset_postdata();
-    update_post_meta($post_id, '_alpha_storys_id', $story_id);
-    return $story_id;
+    update_post_meta($post_id, '_alpha_storys_id', $storys_id);
+    return $storys_id;
   }
 
   $args = [
@@ -111,20 +111,20 @@ function alpha_get_or_create_story_for_post($post_id) {
     'post_status' => 'draft',
     'post_author' => (int)$post->post_author,
   ];
-  $story_id = wp_insert_post($args);
+  $storys_id = wp_insert_post($args);
 
-  if ($story_id) {
-    update_post_meta($story_id, '_alpha_storys_source_post', $post_id);
-    update_post_meta($post_id,  '_alpha_storys_id',         $story_id);
+  if ($storys_id) {
+    update_post_meta($storys_id, '_alpha_storys_source_post', $post_id);
+    update_post_meta($post_id,  '_alpha_storys_id',         $storys_id);
     $thumb = get_post_thumbnail_id($post_id);
-    if ($thumb) set_post_thumbnail($story_id, $thumb);
+    if ($thumb) set_post_thumbnail($storys_id, $thumb);
     $publisher = alpha_opt('publisher_name', get_bloginfo('name'));
-    update_post_meta($story_id, '_alpha_storys_publisher', sanitize_text_field($publisher));
+    update_post_meta($storys_id, '_alpha_storys_publisher', sanitize_text_field($publisher));
     $logo_id = (int) alpha_opt('publisher_logo_id', 0);
-    if ($logo_id) update_post_meta($story_id, '_alpha_storys_logo_id', $logo_id);
+    if ($logo_id) update_post_meta($storys_id, '_alpha_storys_logo_id', $logo_id);
   }
 
-  return (int)$story_id;
+  return (int)$storys_id;
 }
 
 /** =========================
@@ -152,10 +152,10 @@ function alpha_sideload_image_to_post($image_url, $attach_to_post_id = 0) {
 /** =========================
  *  Render: páginas -> blocos
  *  ========================= */
-function alpha_render_story_pages_to_blocks(array $pages, $story_id) {
+function alpha_render_storys_pages_to_blocks(array $pages, $storys_id) {
   $blocks = '';
 
-  $featured_set = has_post_thumbnail($story_id);
+  $featured_set = has_post_thumbnail($storys_id);
   foreach ($pages as $idx => $p) {
     $heading  = isset($p['heading']) ? wp_strip_all_tags($p['heading']) : '';
     $body     = isset($p['body'])    ? wp_kses_post($p['body']) : '';
@@ -207,7 +207,7 @@ function alpha_render_story_pages_to_blocks(array $pages, $story_id) {
  *  IA: gerar e salvar conteúdo
  *  ========================= */
 function alpha_ai_generate_for_post($post_id) {
-  $o   = alpha_stories_options();
+  $o   = alpha_storys_options();
   $key = alpha_ai_get_api_key();
   if (!$key) return new WP_Error('alpha_ai_key', 'Configure sua OpenAI API Key nas Configurações.');
 
@@ -219,7 +219,7 @@ function alpha_ai_generate_for_post($post_id) {
   $brief    = alpha_ai_get_default_brief();
 
   // Prompt: primeiro tenta o que o usuário salvou; se vazio, cai no padrão
-    $o = alpha_stories_options();
+    $o = alpha_storys_options();
     
     $system_pt = '';
     if (isset($o['ai_prompt_template']) && is_string($o['ai_prompt_template'])) {
@@ -229,7 +229,7 @@ function alpha_ai_generate_for_post($post_id) {
     if ($system_pt === '') {
       $system_pt = function_exists('alpha_storys_default_prompt_template')
         ? (string) alpha_storys_default_prompt_template()
-        : "Você transforma posts em Web Stories AMP... (prompt padrão de fallback)";
+        : "Você transforma posts em Web storys AMP... (prompt padrão de fallback)";
     }
 
   $input_text = $system_pt
@@ -301,12 +301,12 @@ function alpha_ai_generate_for_post($post_id) {
   // Decide destino: se já for um alpha_storys, usa o próprio; se não, cria/pega o irmão
   $target_id = (get_post_type($post_id) === 'alpha_storys')
     ? (int)$post_id
-    : alpha_get_or_create_story_for_post((int)$post_id);
+    : alpha_get_or_create_storys_for_post((int)$post_id);
 
   if (!$target_id) return new WP_Error('alpha_storys_target', 'Não foi possível criar ou localizar o Web Story.');
 
   // Renderiza blocos e salva no editor
-  $blocks = alpha_render_story_pages_to_blocks($pages, $target_id);
+  $blocks = alpha_render_storys_pages_to_blocks($pages, $target_id);
 
   // Atualiza post_content com blocos do Gutenberg
   wp_update_post([

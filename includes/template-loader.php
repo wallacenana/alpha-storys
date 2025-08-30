@@ -9,7 +9,7 @@ add_filter('single_template', function($template){
     if ( $theme_tpl ) return $theme_tpl;
 
     // 2) fallback do plugin
-    $plugin_tpl = ALPHA_STORIES_PATH . 'templates/single-alpha_storys.php';
+    $plugin_tpl = ALPHA_STORYS_PATH . 'templates/single-alpha_storys.php';
     if ( file_exists($plugin_tpl) ) return $plugin_tpl;
   }
   return $template;

@@ -48,9 +48,9 @@ function alpha_admin_bulk_ai_screen(){
       $args['date_query'] = [$dq];
     }
     if ($only_new){
-      // pega posts que NÃO possuem relação _alpha_story_id
+      // pega posts que NÃO possuem relação _alpha_storys_id
       $args['meta_query'] = [[
-        'key'     => '_alpha_story_id',
+        'key'     => '_alpha_storys_id',
         'compare' => 'NOT EXISTS',
       ]];
     }
@@ -60,33 +60,33 @@ function alpha_admin_bulk_ai_screen(){
       while ($q->have_posts()){ $q->the_post();
         $pid = get_the_ID();
 
-        // pega/cria a story espelhada deste post
-        $sid = alpha_get_or_create_story_for_post($pid);
+        // pega/cria a storys espelhada deste post
+        $sid = alpha_get_or_create_storys_for_post($pid);
         if (!$sid){ $errors[] = "Falha ao criar story para post #$pid"; continue; }
 
         // decide de onde vêm as páginas
         if ($generator === 'ai'){
           $res = alpha_ai_generate_for_post($sid, $brief);
           if (is_wp_error($res)){
-            $rows[] = ['post_id'=>$pid,'story_id'=>$sid,'ok'=>false,'msg'=>$res->get_error_message()];
+            $rows[] = ['post_id'=>$pid,'storys_id'=>$sid,'ok'=>false,'msg'=>$res->get_error_message()];
           } else {
-            $rows[] = ['post_id'=>$pid,'story_id'=>$sid,'ok'=>true,'count'=>$res['count'],'source'=>'AI'];
+            $rows[] = ['post_id'=>$pid,'storys_id'=>$sid,'ok'=>true,'count'=>$res['count'],'source'=>'AI'];
           }
         } else {
           // PARSER (H2 e <hr>)
           $html  = get_post_field('post_content', $pid);
-          $pages = alpha_build_story_pages_from_content($html);
+          $pages = alpha_build_storys_pages_from_content($html);
           if (!$pages){ 
-            $rows[] = ['post_id'=>$pid,'story_id'=>$sid,'ok'=>false,'msg'=>'Parser não encontrou seções.'];
+            $rows[] = ['post_id'=>$pid,'storys_id'=>$sid,'ok'=>false,'msg'=>'Parser não encontrou seções.'];
           } else {
-            if ($overwrite || !get_post_meta($sid, '_alpha_story_pages', true)){
-              update_post_meta($sid, '_alpha_story_pages', $pages);
+            if ($overwrite || !get_post_meta($sid, '_alpha_storys_pages', true)){
+              update_post_meta($sid, '_alpha_storys_pages', $pages);
             }
-            $rows[] = ['post_id'=>$pid,'story_id'=>$sid,'ok'=>true,'count'=>count($pages),'source'=>'parser'];
+            $rows[] = ['post_id'=>$pid,'storys_id'=>$sid,'ok'=>true,'count'=>count($pages),'source'=>'parser'];
           }
         }
 
-        // poster/thumbnail: se a story não tiver, usa do post
+        // poster/thumbnail: se a storys não tiver, usa do post
         if (!has_post_thumbnail($sid) && has_post_thumbnail($pid)){
           set_post_thumbnail($sid, get_post_thumbnail_id($pid));
         }
@@ -99,7 +99,7 @@ function alpha_admin_bulk_ai_screen(){
   // UI
   ?>
   <div class="wrap">
-    <h1>Gerar Stories em Massa a partir de Posts</h1>
+    <h1>Gerar Storys em Massa a partir de Posts</h1>
     <form method="post">
       <?php wp_nonce_field('alpha_bulk_ai','alpha_bulk_nonce'); ?>
 
@@ -182,8 +182,8 @@ function alpha_admin_bulk_ai_screen(){
                 </a>
               </td>
               <td>
-                <a href="<?php echo esc_url(get_edit_post_link($r['story_id'])); ?>">
-                  #<?php echo (int)$r['story_id']; ?>
+                <a href="<?php echo esc_url(get_edit_post_link($r['storys_id'])); ?>">
+                  #<?php echo (int)$r['storys_id']; ?>
                 </a>
               </td>
               <td><?php echo !empty($r['ok']) ? 'OK' : 'Erro'; ?></td>

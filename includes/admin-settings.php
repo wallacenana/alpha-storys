@@ -3,26 +3,26 @@ if (!defined('ABSPATH')) exit;
 
 add_action('admin_menu', function () {
   add_menu_page(
-    'Alpha Stories',
-    'Alpha Stories',
+    'Alpha Storys',
+    'Alpha Storys',
     'manage_options',
-    'alpha-stories',
+    'alpha-storys',
     'alpha_admin_dashboard_screen',
     'dashicons-slides',
     25
   );
 
   // Adicionar novo (CPT)
-  add_submenu_page('alpha-stories', 'Adicionar novo', 'Adicionar novo', 'edit_posts', 'post-new.php?post_type=alpha_storys', null);
+  add_submenu_page('alpha-storys', 'Adicionar novo', 'Adicionar novo', 'edit_posts', 'post-new.php?post_type=alpha_storys', null);
 
   // IA em Massa
-//   add_submenu_page('alpha-stories', 'IA em Massa', 'IA em Massa', 'manage_options', 'alpha-stories-bulk', 'alpha_admin_bulk_ai_screen');
+//   add_submenu_page('alpha-storys', 'IA em Massa', 'IA em Massa', 'manage_options', 'alpha-storys-bulk', 'alpha_admin_bulk_ai_screen');
 
   // Configurações
-  add_submenu_page('alpha-stories', 'Configurações', 'Configurações', 'manage_options', 'alpha-stories-settings', 'alpha_admin_settings_screen');
+  add_submenu_page('alpha-storys', 'Configurações', 'Configurações', 'manage_options', 'alpha-storys-settings', 'alpha_admin_settings_screen');
   //Prompt de comando
   add_submenu_page(
-    'alpha-stories',
+    'alpha-storys',
     'Prompt',
     'Prompt',
     'manage_options',
@@ -34,7 +34,7 @@ add_action('admin_menu', function () {
 
 /** Registrar settings */
 add_action('admin_init', function () {
-  register_setting('alpha_stories_group', 'alpha_stories_options', [
+  register_setting('alpha_storys_group', 'alpha_storys_options', [
     'type' => 'array',
     'sanitize_callback' => function ($in) {
       $out = is_array($in) ? $in : [];
@@ -65,29 +65,29 @@ add_action('admin_init', function () {
 
 /** Enqueue uploader só na tela de settings do plugin */
 add_action('admin_enqueue_scripts', function ($hook) {
-  if ($hook !== 'toplevel_page_alpha-stories' && $hook !== 'alpha-stories_page_alpha-stories-settings') return;
+  if ($hook !== 'toplevel_page_alpha-storys' && $hook !== 'alpha-storys_page_alpha-storys-settings') return;
   wp_enqueue_media();
-  wp_enqueue_script('alpha-stories-admin', ALPHA_STORIES_URL . 'assets/js/admin.js', ['jquery'], '1.0.1', true);
+  wp_enqueue_script('alpha-storyS-admin', ALPHA_STORYS_URL . 'assets/js/admin.js', ['jquery'], '1.0.1', true);
 });
 
 /** Settings screen */
 function alpha_admin_settings_screen()
 {
   if (!current_user_can('manage_options')) return;
-  $o = alpha_stories_options();
+  $o = alpha_storys_options();
   $logo_url = alpha_get_publisher_logo_url();
 ?>
   <div class="wrap">
-    <h1>Alpha Stories · Configurações</h1>
+    <h1>Alpha storys · Configurações</h1>
     <form method="post" action="options.php">
-      <?php settings_fields('alpha_stories_group'); ?>
-      <?php $o = alpha_stories_options(); ?>
+      <?php settings_fields('alpha_storys_group'); ?>
+      <?php $o = alpha_storys_options(); ?>
 
       <h2 class="title">Publisher</h2>
       <table class="form-table">
         <tr>
           <th scope="row"><label for="publisher_name">Nome do publisher</label></th>
-          <td><input name="alpha_stories_options[publisher_name]" id="publisher_name" type="text" class="regular-text" value="<?php echo esc_attr($o['publisher_name'] ?? get_bloginfo('name')); ?>"></td>
+          <td><input name="alpha_storys_options[publisher_name]" id="publisher_name" type="text" class="regular-text" value="<?php echo esc_attr($o['publisher_name'] ?? get_bloginfo('name')); ?>"></td>
         </tr>
         <tr>
           <th scope="row">Logo (96x96)</th>
@@ -95,7 +95,7 @@ function alpha_admin_settings_screen()
             <div style="margin-bottom:8px;">
               <img id="alpha_logo_preview" src="<?php echo esc_url($logo_url ?: ''); ?>" style="max-width:96px;height:auto;<?php echo $logo_url ? '' : 'display:none'; ?>">
             </div>
-            <input type="hidden" id="publisher_logo_id" name="alpha_stories_options[publisher_logo_id]" value="<?php echo (int) ($o['publisher_logo_id'] ?? 0); ?>">
+            <input type="hidden" id="publisher_logo_id" name="alpha_storys_options[publisher_logo_id]" value="<?php echo (int) ($o['publisher_logo_id'] ?? 0); ?>">
             <button type="button" class="button" id="alpha_logo_btn">Selecionar imagem</button>
             <button type="button" class="button" id="alpha_logo_clear" style="margin-left:8px;">Remover</button>
           </td>
@@ -107,7 +107,7 @@ function alpha_admin_settings_screen()
         <tr>
           <th scope="row"><label for="default_style">Preset de estilo</label></th>
           <td>
-            <select name="alpha_stories_options[default_style]" id="default_style">
+            <select name="alpha_storys_options[default_style]" id="default_style">
               <?php
               $choices = ['clean' => 'Clean', 'dark-left' => 'Dark Left', 'card' => 'Card', 'split' => 'Split'];
               foreach ($choices as $val => $lab) {
@@ -120,7 +120,7 @@ function alpha_admin_settings_screen()
         <tr>
           <th scope="row"><label for="default_font">Fonte</label></th>
           <td>
-            <select name="alpha_stories_options[default_font]" id="default_font">
+            <select name="alpha_storys_options[default_font]" id="default_font">
               <?php
               $fonts = ['system' => 'System UI', 'inter' => 'Inter', 'poppins' => 'Poppins', 'merriweather' => 'Merriweather', 'plusjakarta' => 'Plus Jakarta Sans',];
               foreach ($fonts as $val => $lab) {
@@ -132,15 +132,15 @@ function alpha_admin_settings_screen()
         </tr>
         <tr>
           <th scope="row"><label for="accent_color">Cor de destaque</label></th>
-          <td><input name="alpha_stories_options[accent_color]" id="accent_color" type="text" class="regular-text" value="<?php echo esc_attr($o['accent_color'] ?? '#ffffff'); ?>" placeholder="#ffffff"></td>
+          <td><input name="alpha_storys_options[accent_color]" id="accent_color" type="text" class="regular-text" value="<?php echo esc_attr($o['accent_color'] ?? '#ffffff'); ?>" placeholder="#ffffff"></td>
         </tr>
         <tr>
           <th scope="row">Autoplay</th>
           <td>
-            <label><input type="checkbox" name="alpha_stories_options[autoplay]" value="1" <?php checked(!empty($o['autoplay'])); ?>> Ativar</label>
+            <label><input type="checkbox" name="alpha_storys_options[autoplay]" value="1" <?php checked(!empty($o['autoplay'])); ?>> Ativar</label>
             &nbsp;&nbsp;
             <label for="duration">Tempo por página (s)</label>
-            <select name="alpha_stories_options[duration]" id="duration">
+            <select name="alpha_storys_options[duration]" id="duration">
               <?php foreach (['5', '7', '10', '12'] as $d) printf('<option value="%s"%s>%ss</option>', $d, selected(($o['duration'] ?? '7'), $d, false), $d); ?>
             </select>
           </td>
@@ -152,15 +152,15 @@ function alpha_admin_settings_screen()
         <tr>
           <th scope="row">Modo</th>
           <td>
-            <label><input type="radio" name="alpha_stories_options[ga_mode]" value="auto" <?php checked(($o['ga_mode'] ?? 'auto'), 'auto'); ?>> Auto (tentar Site Kit)</label><br>
-            <label><input type="radio" name="alpha_stories_options[ga_mode]" value="manual" <?php checked(($o['ga_mode'] ?? 'auto'), 'manual'); ?>> Manual</label><br>
-            <label><input type="radio" name="alpha_stories_options[ga_mode]" value="off" <?php checked(($o['ga_mode'] ?? 'auto'), 'off'); ?>> Desativado</label>
+            <label><input type="radio" name="alpha_storys_options[ga_mode]" value="auto" <?php checked(($o['ga_mode'] ?? 'auto'), 'auto'); ?>> Auto (tentar Site Kit)</label><br>
+            <label><input type="radio" name="alpha_storys_options[ga_mode]" value="manual" <?php checked(($o['ga_mode'] ?? 'auto'), 'manual'); ?>> Manual</label><br>
+            <label><input type="radio" name="alpha_storys_options[ga_mode]" value="off" <?php checked(($o['ga_mode'] ?? 'auto'), 'off'); ?>> Desativado</label>
           </td>
         </tr>
         <tr>
           <th scope="row"><label for="ga_manual_id">GA4 Measurement ID (Manual)</label></th>
           <td>
-            <input name="alpha_stories_options[ga_manual_id]" id="ga_manual_id" type="text" class="regular-text" placeholder="G-XXXXXXXXXX" value="<?php echo esc_attr($o['ga_manual_id'] ?? ''); ?>">
+            <input name="alpha_storys_options[ga_manual_id]" id="ga_manual_id" type="text" class="regular-text" placeholder="G-XXXXXXXXXX" value="<?php echo esc_attr($o['ga_manual_id'] ?? ''); ?>">
             <p class="description">Usado apenas se “Manual” estiver selecionado.</p>
           </td>
         </tr>
@@ -171,27 +171,27 @@ function alpha_admin_settings_screen()
         <tr>
           <th scope="row"><label for="ai_api_key">OpenAI API Key</label></th>
           <td>
-            <input name="alpha_stories_options[ai_api_key]" id="ai_api_key" type="password" class="regular-text" value="<?php echo esc_attr($o['ai_api_key'] ?? ''); ?>" placeholder="sk-...">
+            <input name="alpha_storys_options[ai_api_key]" id="ai_api_key" type="password" class="regular-text" value="<?php echo esc_attr($o['ai_api_key'] ?? ''); ?>" placeholder="sk-...">
             <p class="description">Você também pode definir a constante <code>ALPHA_OPENAI_KEY</code> no wp-config.php.</p>
           </td>
         </tr>
         <tr>
           <th scope="row"><label for="ai_model">Modelo</label></th>
           <td>
-            <input name="alpha_stories_options[ai_model]" id="ai_model" type="text" class="regular-text" value="<?php echo esc_attr($o['ai_model'] ?? 'gpt-4o-mini'); ?>">
+            <input name="alpha_storys_options[ai_model]" id="ai_model" type="text" class="regular-text" value="<?php echo esc_attr($o['ai_model'] ?? 'gpt-4o-mini'); ?>">
             <p class="description">Ex.: gpt-4o-mini (rápido e econômico) — pode trocar depois.</p>
           </td>
         </tr>
         <tr>
           <th scope="row"><label for="ai_temperature">Temperatura</label></th>
           <td>
-            <input name="alpha_stories_options[ai_temperature]" id="ai_temperature" type="number" min="0" max="1" step="0.1" value="<?php echo esc_attr($o['ai_temperature'] ?? '0.4'); ?>">
+            <input name="alpha_storys_options[ai_temperature]" id="ai_temperature" type="number" min="0" max="1" step="0.1" value="<?php echo esc_attr($o['ai_temperature'] ?? '0.4'); ?>">
           </td>
         </tr>
         <tr>
           <th scope="row"><label for="ai_brief_default">Brief padrão</label></th>
           <td>
-            <textarea name="alpha_stories_options[ai_brief_default]" id="ai_brief_default" class="large-text" rows="4" placeholder="tom, público, CTA padrão, nº ideal de slides etc."><?php echo esc_textarea($o['ai_brief_default'] ?? ''); ?></textarea>
+            <textarea name="alpha_storys_options[ai_brief_default]" id="ai_brief_default" class="large-text" rows="4" placeholder="tom, público, CTA padrão, nº ideal de slides etc."><?php echo esc_textarea($o['ai_brief_default'] ?? ''); ?></textarea>
           </td>
         </tr>
       </table>
@@ -204,8 +204,8 @@ function alpha_admin_settings_screen()
 }
 
 add_action('admin_init', function () {
-  /* Salvar em alpha_stories_options[ai_prompt_template] */
-  register_setting('alpha_storys_settings_group', 'alpha_stories_options', [
+  /* Salvar em alpha_storys_options[ai_prompt_template] */
+  register_setting('alpha_storys_settings_group', 'alpha_storys_options', [
     'type'              => 'array',
     'sanitize_callback' => function ($in) {
       $out = is_array($in) ? $in : [];
@@ -222,14 +222,14 @@ add_action('admin_init', function () {
     'ai_prompt_template',
     'Prompt do Gerador',
     function () {
-      $o   = get_option('alpha_stories_options', []);
+      $o   = get_option('alpha_storys_options', []);
       $val = isset($o['ai_prompt_template']) ? (string)$o['ai_prompt_template'] : '';
       $placeholder = function_exists('alpha_storys_default_prompt_template')
         ? alpha_storys_default_prompt_template()
         : 
         "Digite o seu prompt";
   ?>
-    <textarea name="alpha_stories_options[ai_prompt_template]"
+    <textarea name="alpha_storys_options[ai_prompt_template]"
       rows="14"
       class="large-text code"
       placeholder="<?php echo esc_attr($placeholder); ?>"><?php echo esc_textarea($val); ?></textarea>
@@ -244,7 +244,28 @@ add_action('admin_init', function () {
 function alpha_storys_default_prompt_template() {
   // fallback redundante caso admin-settings.php não esteja carregado
   $tpl = <<<EOT
-Transforme posts em Web Stories AMP. Gere slides concisos (até ~240 caracteres no corpo). O conteúdo completo deve ter pelo menos 30% de palavras de transição no padrão do Yoast, como mas, porém, entretanto, por isso, em resumo — coisas nesse sentido. No máximo 10 páginas; a primeira página deve ter um título mais chamativo, no padrão de título Discovery, que realmente desperte muita curiosidade (nada de informativo como \"introdução a x\"). A página 5 deve ser um CTA para um grupo do WhatsApp com conteúdos do site, com link para o grupo no final; o primeiro item fica sem CTA, daí o segundo tem CTA e vai intercalando assim: post com CTA, post sem CTA. O CTA é um texto linkado no final do body; exemplo: saiba mais (onde \"saiba mais\" é um link como <a href=\"#\">Saiba mais</a>); gere CTAs variados; a conclusão deve ter um CTA desses também. Todos os links (com exceção do CTA para o grupo) devem mandar para o post em questão. Gere um prompt para que seja gerada a imagem daquele conteúdo; o prompt da imagem deve ser realista, não contendo elementos voltados para ilustração; o prompt deve ser completo (mínimo de 150 caracteres).
+  Nunca coloque nada sobre perguntas frequentes ou FAQ, como títulos sobre "perguntas frequentes".
+Transforme posts em Web storys AMP. Gere slides concisos (até ~240 caracteres no corpo). O conteúdo completo deve ter pelo menos 30% de palavras de transição no padrão do Yoast, como mas, porém, entretanto, por isso, em resumo — coisas nesse sentido. No máximo 10 páginas; a primeira página deve ter um título mais chamativo, no padrão de título Discovery, que realmente desperte muita curiosidade (nada de informativo como \"introdução a x\"). A página 5 deve ser um CTA para um grupo do WhatsApp com conteúdos do site, com link para o grupo no final; o primeiro item fica sem CTA, daí o segundo tem CTA e vai intercalando assim: post com CTA, post sem CTA. O CTA é um texto linkado no final do body; exemplo: saiba mais (onde \"saiba mais\" é um link como <a href=\"#\">Saiba mais</a>); gere CTAs variados; a conclusão deve ter um CTA desses também. Todos os links (com exceção do CTA para o grupo) devem mandar para o post em questão. Gere um prompt para que seja gerada a imagem daquele conteúdo; o prompt da imagem deve ser realista, não contendo elementos voltados para ilustração; o prompt deve ser completo (mínimo de 150 caracteres).
+A conclusão é sempre um CTA para ver mais conteúdos desses no site em questão.
+Sobre o título: quero dar algumas informações para elaborar um bom titulo, leia todas essas informações e depois de comporte-se como um jornalista sênior capaz de se eloquente escritor especialista com um impressionante vocabulário. Seu estilo de escrita é intrigante e consegue surpreender os leitores com opiniões bem elaboradas EM TITULO CURTOS.
+Especificidade: títulos que fornecem detalhes, números ou nomes específicos tendem a capturar
+atenção. Por exemplo, "15 melhores empresas" ou "Este homem de 32 anos estava ganhando US$ 17/hora".
+Emoção e curiosidade: títulos que evocam uma resposta emocional ou despertam curiosidade podem envolver os leitores. 
+Por exemplo, "As cidades mais tristes de todo o país" ou "Disney Ride Gets Revisão surpreendente".
+Rentabilidade e relevância: tópicos que repercutem em um amplo público ou são oportuno/relevante pode ser um sucesso. Por exemplo, o foco em "trabalho híbrido" ou "ChatGPT".
+Autoridade: quando o título parece confiável ou cita especialistas, ele pode atrair
+trustandclicks.Ex.,"O que os especialistas dizem" ou "Pessoas emocionalmente inteligentes usam...".
+Clareza: A clareza não deve ser sacrificada. deve dar uma ideia clara sobre o conteúdo do artigo.
+Problema e Solução:Títulos que destacam um problema e fornecem uma solução podem ser
+Envolvente. Por exemplo, "Fitbit responde a fãs furiosos com cinco correções de aplicativos muito necessárias".
+E NÃO ESQUEÇA O ASPECTO NOTÍCIA
+Oportunidade e relevância: plataformas como o Google Discover são feitas sob medida para fornecer conteúdo que é tendência atual ou é de relevância imediata para os usuários. Títulos que tocam em eventos atuais ou desenvolvimentos recentes têm maior probabilidade de serem revelados.
+Engajamento do usuário: as pessoas são naturalmente atraídas pelas últimas notícias ou desenvolvimentos em tópicos nos quais estão interessados. Eles são mais propensos a clicar, ler e se envolver com artigos que fornecem novas percepções ou atualizações sobre eventos atuais.
+Personalização: o Google Discover e plataformas semelhantes usam algoritmos que personalizam conteúdo baseado no comportamento do usuário. Se um usuário demonstrou interesse em um evento de notícias recente tópico, é mais provável que eles recebam conteúdo relacionado.
+Urgência: as notícias vêm inerentemente com um senso de urgência.
+mudanças, surpresas ou eventos impactantes podem fazer com que os usuários cliquem para saber mais. Por exemplo,
+"Disney Ride recebe uma revisão surpreendente" ou "O criador do ChatGPT OpenAI isintalks...".
+
 Retorne APENAS um JSON válido no formato:
 {\"pages\":[{\"heading\":\"\",\"body\":\"\",\"cta_text\":\"\",\"cta_url\":\"\",\"prompt\":\"\"}]}
 EOT;
@@ -255,7 +276,7 @@ EOT;
 function alpha_storys_settings_page_render()
 { ?>
   <div class="wrap">
-    <h1>Alpha Story</h1>
+    <h1>Alpha Storys</h1>
     <form method="post" action="options.php">
       <?php
       settings_fields('alpha_storys_settings_group');
